@@ -1,0 +1,3 @@
+# Extra deps for the MelodAI server, on top of ACE-Step's own `pip install -e .`
+# (ACE-Step already pulls fastapi + uvicorn as dependencies.)
+torchcodec        # required by torchaudio 2.11+ to write audio files

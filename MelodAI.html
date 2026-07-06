@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MelodAI — AI Music Generator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0a0a0f;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh;
+    }
+
+    header {
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #a855f7, #ec4899); }
+    header span.brand { font-size: 1.2rem; font-weight: 600; letter-spacing: -0.3px; }
+
+    .status {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.5);
+    }
+    .status .dot { width: 9px; height: 9px; border-radius: 50%; background: #6b7280; transition: background 0.3s; }
+    .status.online .dot { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+    .status.offline .dot { background: #ef4444; }
+
+    .container { max-width: 720px; margin: 0 auto; padding: 48px 24px; display: flex; flex-direction: column; gap: 36px; }
+
+    .hero { text-align: center; }
+    .hero h1 {
+      font-size: 2.4rem; font-weight: 700;
+      background: linear-gradient(90deg, #c084fc, #f472b6);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+    .hero p { color: rgba(255,255,255,0.4); font-size: 0.9rem; }
+
+    .offline-banner {
+      display: none;
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: #fca5a5;
+      font-size: 0.82rem;
+      border-radius: 12px;
+      padding: 14px 16px;
+      line-height: 1.5;
+    }
+    .offline-banner code { color: #fff; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; }
+
+    .grid-3 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+
+    label.field-label {
+      display: block; font-size: 0.7rem; text-transform: uppercase;
+      letter-spacing: 0.08em; color: rgba(255,255,255,0.4); margin-bottom: 8px;
+    }
+
+    select, textarea {
+      width: 100%; background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
+      color: #fff; font-size: 0.875rem; outline: none; transition: border-color 0.2s;
+    }
+    select:focus, textarea:focus { border-color: #a855f7; }
+    select { padding: 10px 12px; cursor: pointer; appearance: none; }
+    textarea { padding: 12px 16px; resize: none; font-family: "SF Mono", "Fira Code", monospace; line-height: 1.6; }
+    textarea::placeholder { color: rgba(255,255,255,0.2); }
+    option { background: #1a1a2e; }
+
+    .hint { font-size: 0.72rem; color: rgba(255,255,255,0.25); margin-top: 6px; }
+    .hint code { color: #c084fc; }
+
+    .slider-wrap { display: flex; flex-direction: column; gap: 8px; }
+    .slider-label { display: flex; justify-content: space-between; align-items: center; }
+    .slider-label span:first-child { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.4); }
+    .slider-label span:last-child { font-size: 0.85rem; color: #c084fc; font-weight: 600; }
+    input[type="range"] { width: 100%; accent-color: #a855f7; cursor: pointer; }
+    .slider-ticks { display: flex; justify-content: space-between; font-size: 0.7rem; color: rgba(255,255,255,0.2); }
+
+    .error-box {
+      background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+      color: #f87171; font-size: 0.85rem; border-radius: 12px; padding: 12px 16px; display: none;
+    }
+
+    button#generate {
+      width: 100%; padding: 16px; border: none; border-radius: 12px;
+      font-size: 0.9rem; font-weight: 600; letter-spacing: 0.03em; cursor: pointer;
+      background: linear-gradient(90deg, #7c3aed, #db2777); color: #fff;
+      transition: opacity 0.2s, filter 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    button#generate:hover:not(:disabled) { filter: brightness(1.15); }
+    button#generate:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .progress-note { font-size: 0.75rem; color: rgba(255,255,255,0.4); text-align: center; display: none; }
+
+    .player {
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px; padding: 24px; display: none; flex-direction: column; gap: 16px;
+    }
+    .player-header { display: flex; justify-content: space-between; align-items: center; }
+    .player-header .info p:first-child { font-weight: 600; font-size: 1rem; }
+    .player-header .info p:last-child { font-size: 0.75rem; color: rgba(255,255,255,0.35); margin-top: 2px; }
+    .download-btn {
+      font-size: 0.75rem; color: #c084fc; border: 1px solid rgba(168,85,247,0.3);
+      padding: 6px 14px; border-radius: 8px; text-decoration: none; transition: color 0.2s, border-color 0.2s;
+    }
+    .download-btn:hover { color: #e879f9; border-color: rgba(232,121,249,0.5); }
+    audio { width: 100%; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo"></div>
+  <span class="brand">MelodAI</span>
+  <div class="status" id="status">
+    <div class="dot"></div>
+    <span id="status-text">Checking backend…</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="hero">
+    <h1>Generate Your Song</h1>
+    <p>Powered by ACE-Step (local) — write lyrics, pick a vibe, get a sung track.</p>
+  </div>
+
+  <div class="offline-banner" id="offline-banner">
+    <strong>Backend not connected.</strong> Start it in Terminal:<br><br>
+    <code>cd /Users/srujan/Projects/melodai/acestep-engine</code><br>
+    <code>source venv/bin/activate</code><br>
+    <code>uvicorn server:app --port 8000</code><br><br>
+    This page auto-reconnects once the server is running.
+  </div>
+
+  <div class="grid-3">
+    <div>
+      <label class="field-label">Genre</label>
+      <select id="genre">
+        <option value="">Any genre</option>
+        <option value="pop">Pop</option>
+        <option value="hip-hop">Hip-Hop</option>
+        <option value="r&b">R&B</option>
+        <option value="rock">Rock</option>
+        <option value="jazz">Jazz</option>
+        <option value="electronic">Electronic</option>
+        <option value="classical">Classical</option>
+        <option value="folk">Folk</option>
+        <option value="metal">Metal</option>
+        <option value="reggae">Reggae</option>
+      </select>
+    </div>
+    <div>
+      <label class="field-label">Mood</label>
+      <select id="mood">
+        <option value="">Any mood</option>
+        <option value="upbeat">Upbeat</option>
+        <option value="melancholic">Melancholic</option>
+        <option value="energetic">Energetic</option>
+        <option value="calm">Calm</option>
+        <option value="romantic">Romantic</option>
+        <option value="dark">Dark</option>
+        <option value="hopeful">Hopeful</option>
+        <option value="angry">Angry</option>
+        <option value="dreamy">Dreamy</option>
+        <option value="intense">Intense</option>
+      </select>
+    </div>
+    <div>
+      <label class="field-label">Theme</label>
+      <select id="theme">
+        <option value="">Any theme</option>
+        <option value="love">Love</option>
+        <option value="heartbreak">Heartbreak</option>
+        <option value="friendship">Friendship</option>
+        <option value="nature">Nature</option>
+        <option value="journey">Journey</option>
+        <option value="nostalgia">Nostalgia</option>
+        <option value="rebellion">Rebellion</option>
+        <option value="hope">Hope</option>
+        <option value="loss">Loss</option>
+        <option value="celebration">Celebration</option>
+      </select>
+    </div>
+    <div>
+      <label class="field-label">Voice</label>
+      <select id="voice">
+        <option value="">Any voice</option>
+        <option value="female">Female</option>
+        <option value="male">Male</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="slider-wrap">
+    <div class="slider-label">
+      <span>Duration</span>
+      <span id="dur-label">60s</span>
+    </div>
+    <input type="range" id="duration" min="30" max="240" step="15" value="60" />
+    <div class="slider-ticks"><span>30s</span><span>4 min</span></div>
+  </div>
+
+  <div>
+    <label class="field-label">Lyrics <span style="color:#f472b6">*</span></label>
+    <textarea id="lyrics" rows="10" placeholder="[verse]&#10;Write your lyrics here...&#10;&#10;[chorus]&#10;These will actually be sung"></textarea>
+    <p class="hint">Use <code>[verse]</code>, <code>[chorus]</code>, <code>[bridge]</code> tags — ACE-Step sings these lyrics.</p>
+  </div>
+
+  <div class="error-box" id="error"></div>
+
+  <button id="generate">
+    <div class="spinner" id="spinner"></div>
+    <span id="btn-text">Generate Song</span>
+  </button>
+  <p class="progress-note" id="progress-note">Generating on your Mac's GPU — this can take 1–3 minutes…</p>
+
+  <div class="player" id="player">
+    <div class="player-header">
+      <div class="info">
+        <p>Your Song</p>
+        <p id="song-meta"></p>
+      </div>
+      <a class="download-btn" id="download-link" download="melodai-song.wav">Download</a>
+    </div>
+    <audio id="audio" controls autoplay></audio>
+  </div>
+
+</div>
+
+<script>
+  const API = 'http://localhost:8000';
+
+  // ---- Backend health polling ----
+  const statusEl = document.getElementById('status');
+  const statusText = document.getElementById('status-text');
+  const offlineBanner = document.getElementById('offline-banner');
+  const genBtn = document.getElementById('generate');
+
+  async function checkHealth() {
+    try {
+      const r = await fetch(`${API}/health`, { cache: 'no-store' });
+      const d = await r.json();
+      statusEl.className = 'status online';
+      statusText.textContent = d.ready ? 'Backend ready' : 'Backend up (model loading)';
+      offlineBanner.style.display = 'none';
+      genBtn.disabled = false;
+    } catch {
+      statusEl.className = 'status offline';
+      statusText.textContent = 'Backend offline';
+      offlineBanner.style.display = 'block';
+      genBtn.disabled = true;
+    }
+  }
+  checkHealth();
+  setInterval(checkHealth, 4000);
+
+  // ---- Duration label ----
+  const durSlider = document.getElementById('duration');
+  const durLabel = document.getElementById('dur-label');
+  durSlider.addEventListener('input', () => { durLabel.textContent = durSlider.value + 's'; });
+
+  // ---- Generate ----
+  document.getElementById('generate').addEventListener('click', async () => {
+    const lyrics = document.getElementById('lyrics').value.trim();
+    const genre = document.getElementById('genre').value;
+    const mood = document.getElementById('mood').value;
+    const theme = document.getElementById('theme').value;
+    const voice = document.getElementById('voice').value;
+    const duration = Number(durSlider.value);
+
+    const errorBox = document.getElementById('error');
+    errorBox.style.display = 'none';
+
+    if (!lyrics) {
+      errorBox.textContent = 'Please enter some lyrics.';
+      errorBox.style.display = 'block';
+      return;
+    }
+
+    const btn = document.getElementById('generate');
+    const spinner = document.getElementById('spinner');
+    const btnText = document.getElementById('btn-text');
+    const note = document.getElementById('progress-note');
+    btn.disabled = true;
+    spinner.style.display = 'block';
+    btnText.textContent = 'Generating your song…';
+    note.style.display = 'block';
+    document.getElementById('player').style.display = 'none';
+
+    try {
+      const res = await fetch(`${API}/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lyrics, genre, mood, theme, voice, duration }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || 'Generation failed.');
+      }
+      const data = await res.json();
+      const audioUrl = `${API}${data.audio_url}`;
+      const meta = [genre, mood, theme, voice && voice + ' voice'].filter(Boolean).join(' · ') || 'Custom';
+      document.getElementById('song-meta').textContent = meta;
+      document.getElementById('audio').src = audioUrl;
+      document.getElementById('download-link').href = audioUrl;
+      document.getElementById('player').style.display = 'flex';
+    } catch (e) {
+      errorBox.textContent = e.message || 'Something went wrong.';
+      errorBox.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      spinner.style.display = 'none';
+      btnText.textContent = 'Generate Song';
+      note.style.display = 'none';
+    }
+  });
+</script>
+
+</body>
+</html>
