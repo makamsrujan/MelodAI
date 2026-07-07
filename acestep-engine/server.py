@@ -13,7 +13,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-app = FastAPI(title="MelodAI API (local ACE-Step)")
+app = FastAPI(
+    title="MelodAI",
+    description="AI Music Generator - Generate full songs with sung vocals from lyrics + genre/mood/theme using ACE-Step running locally on your Mac's GPU",
+    version="1.0.0"
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -61,6 +65,7 @@ def get_pipeline():
 
 
 class GenerateRequest(BaseModel):
+    """Request body for music generation"""
     lyrics: str = ""
     genre: str = ""
     mood: str = ""
@@ -82,6 +87,7 @@ def build_tags(req: GenerateRequest) -> str:
 
 @app.post("/generate")
 def generate_music(req: GenerateRequest):
+    """Generate a song with sung vocals from lyrics and preferences"""
     tags = build_tags(req)
     lyrics = req.lyrics.strip() or "[inst]"
     duration = max(15.0, min(240.0, float(req.duration)))
@@ -134,4 +140,5 @@ def free_accelerator_memory():
 
 @app.get("/health")
 def health():
+    """Check if backend and model are ready"""
     return {"status": "ok", **_load_status}
