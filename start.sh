@@ -16,6 +16,6 @@ fi
 
 echo ""
 echo "Starting MelodAI backend on http://localhost:8000"
-echo "Now open MelodAI.html in your browser."
+echo "Open http://localhost:8000 in your browser (API docs at /docs)."
 echo ""
 exec uvicorn server:app --port 8000

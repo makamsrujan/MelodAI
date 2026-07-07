@@ -10,6 +10,7 @@ import threading
 from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -30,6 +31,13 @@ app.add_middleware(
 OUTPUT_DIR = Path(__file__).parent / "outputs"
 OUTPUT_DIR.mkdir(exist_ok=True)
 app.mount("/outputs", StaticFiles(directory=str(OUTPUT_DIR)), name="outputs")
+
+APP_HTML = Path(__file__).parent.parent / "MelodAI.html"
+
+
+@app.get("/")
+def index():
+    return FileResponse(APP_HTML)
 
 # Lazily-loaded singleton pipeline (loading downloads ~3.5GB on first run).
 _pipeline = None

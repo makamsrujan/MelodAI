@@ -43,8 +43,8 @@ else
 fi
 
 # 3. Open the app
-echo "Opening MelodAI.html in your browser..."
-open "$(pwd)/MelodAI.html"
+echo "Opening MelodAI at http://localhost:8000 ..."
+open "http://localhost:8000"
 
 echo ""
 echo "Done. Leave the backend running in the background."

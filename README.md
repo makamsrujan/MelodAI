@@ -51,8 +51,11 @@ Or just run `./start.sh` from the project root.
 
 Check it: `curl http://localhost:8000/health` → `{"status":"ok","ready":...}`
 
-**2. Open the app:** double-click **`MelodAI.html`** (or open it in any browser).
+**2. Open the app:** go to **http://localhost:8000** in your browser
+(or double-click **`MelodAI.html`** — both work).
 The page auto-detects the backend and shows a green "Backend ready" dot.
+
+Interactive API docs available at **http://localhost:8000/docs**.
 
 ---
 
