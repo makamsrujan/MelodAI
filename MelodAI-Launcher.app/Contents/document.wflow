@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>AMIsApplet</key>
+	<true/>
+	<key>AMStayOpen</key>
+	<false/>
+	<key>AMWorkflowUUID</key>
+	<string>00000000-0000-0000-0000-000000000000</string>
+	<key>objectsOrder</key>
+	<array>
+		<string>0</string>
+	</array>
+	<key>objects</key>
+	<array>
+		<dict>
+			<key>UUID</key>
+			<string>0</string>
+			<key>action</key>
+			<dict>
+				<key>AMAccepts</key>
+				<dict>
+					<key>Container</key>
+					<string>List</string>
+					<key>Optional</key>
+					<true/>
+					<key>Types</key>
+					<array>
+						<string>com.apple.applescript.object</string>
+					</array>
+				</dict>
+				<key>AMActionVersion</key>
+				<string>1.0.2</string>
+				<key>AMApplication</key>
+				<array>
+					<string>Automator</string>
+				</array>
+				<key>AMParameterProperties</key>
+				<dict>
+					<key>source</key>
+					<dict>
+						<key>Name</key>
+						<string>AppleScript source:</string>
+						<key>Value</key>
+						<string>#!/bin/bash
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENGINE_DIR="$REPO_ROOT/acestep-engine"
+VENV_DIR="$ENGINE_DIR/venv"
+PORT=8000
+URL="http://localhost:$PORT"
+
+if [ ! -f "$VENV_DIR/bin/activate" ]; then
+    osascript -e 'display dialog "❌ Virtual environment not found.\n\nPlease complete setup first:\n\n1. git clone https://github.com/ace-step/ACE-Step.git /tmp/ace-step\n2. cp -R /tmp/ace-step/. acestep-engine/\n3. cd acestep-engine && python3.11 -m venv venv\n4. source venv/bin/activate\n5. pip install -e . && pip install -r requirements-server.txt" with icon caution buttons {"OK"} default button 1'
+    exit 1
+fi
+
+cd "$ENGINE_DIR"
+
+if ! curl -s "$URL/health" > /dev/null 2>&1; then
+    source "$VENV_DIR/bin/activate"
+    nohup uvicorn server:app --port $PORT > /tmp/melodai-server.log 2>&1 &
+    
+    for i in {1..30}; do
+        if curl -s "$URL/health" > /dev/null 2>&1; then
+            break
+        fi
+        sleep 1
+    done
+fi
+
+open "$URL"
+</string>
+					</dict>
+				</dict>
+				<key>AMProvides</key>
+				<dict>
+					<key>Container</key>
+					<string>List</string>
+					<key>Types</key>
+					<array>
+						<string>com.apple.applescript.object</string>
+					</array>
+				</dict>
+				<key>ActionBundlePath</key>
+				<string>/System/Library/Automator/Run%20Shell%20Script.action</string>
+				<key>ActionClass</key>
+				<string>AMRunShellScriptAction</string>
+				<key>ActionViewClass</key>
+				<string>AMRunShellScriptActionView</string>
+				<key>Category</key>
+				<array>
+					<string>AMCategoryUtilities</string>
+				</array>
+				<key>Class Name</key>
+				<string>AMRunShellScriptAction</string>
+				<key>InputUUID</key>
+				<string>0</string>
+				<key>Keywords</key>
+				<array>
+					<string>Run</string>
+					<string>Shell</string>
+					<string>Script</string>
+				</array>
+				<key>OutputName</key>
+				<string>Result</string>
+				<key>OutputUUID</key>
+				<string>1</string>
+				<key>ShowWhenRun</key>
+				<false/>
+				<key>UUID</key>
+				<string>0</string>
+				<key>UnlocalizedApplications</key>
+				<array>
+					<string>Automator</string>
+				</array>
+				<key>arguments</key>
+				<dict>
+					<key>0</key>
+					<dict>
+						<key>default value</key>
+						<string>#!/bin/bash
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENGINE_DIR="$REPO_ROOT/acestep-engine"
+VENV_DIR="$ENGINE_DIR/venv"
+PORT=8000
+URL="http://localhost:$PORT"
+
+if [ ! -f "$VENV_DIR/bin/activate" ]; then
+    osascript -e 'display dialog "❌ Virtual environment not found.\n\nPlease complete setup first:\n\n1. git clone https://github.com/ace-step/ACE-Step.git /tmp/ace-step\n2. cp -R /tmp/ace-step/. acestep-engine/\n3. cd acestep-engine && python3.11 -m venv venv\n4. source venv/bin/activate\n5. pip install -e . && pip install -r requirements-server.txt" with icon caution buttons {"OK"} default button 1'
+    exit 1
+fi
+
+cd "$ENGINE_DIR"
+
+if ! curl -s "$URL/health" > /dev/null 2>&1; then
+    source "$VENV_DIR/bin/activate"
+    nohup uvicorn server:app --port $PORT > /tmp/melodai-server.log 2>&1 &
+    
+    for i in {1..30}; do
+        if curl -s "$URL/health" > /dev/null 2>&1; then
+            break
+        fi
+        sleep 1
+    done
+fi
+
+open "$URL"
+</string>
+						<key>name</key>
+						<string>source</string>
+					</dict>
+				</dict>
+				<key>isViewVisible</key>
+				<true/>
+				<key>location</key>
+				<string>309.500000:342.000000</string>
+				<key>nibPath</key>
+				<string>/System/Library/Automator/Run%20Shell%20Script.action/Contents/Resources/English.lproj/main.nib</string>
+			</dict>
+			<key>isActive</key>
+			<true/>
+			<key>isValid</key>
+			<true/>
+		</dict>
+	</array>
+	<key>state</key>
+	<dict>
+		<key>AMLogTabContext</key>
+		<dict/>
+		<key>libraryState</key>
+		<dict/>
+	</dict>
+	<key>variables</key>
+	<array/>
+</dict>
+</plist>
