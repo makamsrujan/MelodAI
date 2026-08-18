@@ -244,7 +244,10 @@
 </div>
 
 <script>
-  const API = 'http://localhost:8000';
+  // Get API URL from environment variable or default to localhost
+  const API = window.location.href.includes('localhost') || window.location.href.includes('127.0.0.1')
+    ? 'http://localhost:8000'
+    : (localStorage.getItem('MELODAI_API') || 'http://localhost:8000');
 
   // ---- Backend health polling ----
   const statusEl = document.getElementById('status');
