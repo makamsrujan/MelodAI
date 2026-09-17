@@ -36,10 +36,10 @@ if curl -s "$URL/health" > /dev/null 2>&1; then
 else
     # Start the server in the background
     source "$VENV_DIR/bin/activate"
-    nohup uvicorn server:app --port $PORT > /tmp/melodai-server.log 2>&1 &
+    nohup uvicorn server:app --host 0.0.0.0 --port $PORT > /tmp/melodai-server.log 2>&1 &
     SERVER_PID=$!
     echo "📡 Backend starting (PID: $SERVER_PID)..."
-    
+
     # Wait for server to be ready
     echo "⏳ Waiting for backend to respond..."
     for i in {1..30}; do
