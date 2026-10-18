@@ -17,7 +17,7 @@ Generate full songs with sung vocals from lyrics + genre/mood/theme, using ACE-S
 
 ## Setup (one time)
 
-This repo tracks only our own files (`server.py`, `analyze_pitch.py`, the app, and docs). The ACE-Step engine itself is not committed — clone it into `acestep-engine/` so it sits alongside our backend:
+This repo tracks only our own files (`server.py`, `analyze_pitch.py`, the app, and docs). The ACE-Step engine itself is not committed — clone it into `acestep-engine/` so it sits alongside our backend.
 
 ```bash
 # from the repo root, pull the ACE-Step engine into acestep-engine/
@@ -59,15 +59,41 @@ cd /path/to/MelodAI
 ./start.sh
 ```
 
-Check it: `curl http://localhost:8000/health` → `{"status":"ok","ready":...}`
+### Before opening the localhost link
 
-Then open the app at `http://localhost:8000` in your browser, or double-click `MelodAI.html`.
+The browser UI will not work until the FastAPI backend is already running and the model is loaded.
+
+Do this first:
+
+```bash
+cd /path/to/MelodAI
+source acestep-engine/venv/bin/activate
+uvicorn server:app --host 0.0.0.0 --port 8000
+```
+
+Then verify the backend is alive before opening the page:
+
+```bash
+curl http://localhost:8000/health
+```
+
+Expected output:
+
+```json
+{"status":"ok","ready":true}
+```
+
+On the first run, the model may take a few minutes to download and initialize. The page can be opened only after the server responds successfully.
+
+Then open the app at `http://localhost:8000` in your browser.
+
+For a direct HTML file open, `MelodAI.html` can still be opened, but the frontend will automatically prefer the same-origin backend when it is served. If opened as a raw file, it falls back to `http://localhost:8000`.
 
 Interactive API docs are available at `http://localhost:8000/docs`.
 
 ## Why the import error happened
 
-This failure happens when `uvicorn server:app` is started from the wrong directory. `server.py` is not at the repository root in the original engine checkout, so running it from the repo root without the compatibility wrapper may produce:
+This failure happens when `uvicorn server:app` is started from the wrong directory. `server.py` is not at the repository root in the original engine checkout, so running it from the repo root with the wrong environment can fail.
 
 ```text
 Error loading ASGI app. Could not import module "server".
