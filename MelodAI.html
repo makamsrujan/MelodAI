@@ -244,12 +244,26 @@
 </div>
 
 <script>
-  // Get API URL from environment variable or default to localhost
-  const API = window.location.href.includes('localhost') || window.location.href.includes('127.0.0.1')
-    ? 'http://localhost:8000'
-    : (localStorage.getItem('MELODAI_API') || 'http://localhost:8000');
+  const STORAGE_KEY = 'MELODAI_API';
+  const DEFAULT_API = 'http://localhost:8000';
 
-  // ---- Backend health polling ----
+  function getApiBase() {
+    const localHost = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored && stored.trim()) return stored.trim().replace(/\/$/, '');
+    return localHost ? DEFAULT_API : DEFAULT_API;
+  }
+
+  const API = getApiBase();
+
+  function resolveAudioUrl(value) {
+    if (!value) return '';
+    if (/^https?:\/\//i.test(value)) return value;
+    if (value.startsWith('//')) return `${window.location.protocol}${value}`;
+    const normalized = value.startsWith('/') ? value : `/${value}`;
+    return `${API}${normalized}`;
+  }
+
   const statusEl = document.getElementById('status');
   const statusText = document.getElementById('status-text');
   const offlineBanner = document.getElementById('offline-banner');
@@ -257,13 +271,14 @@
 
   async function checkHealth() {
     try {
-      const r = await fetch(`${API}/health`, { cache: 'no-store' });
-      const d = await r.json();
+      const response = await fetch(`${API}/health`, { cache: 'no-store' });
+      const data = await response.json();
+      const ready = Boolean(data && (data.ready || data.status === 'ok'));
       statusEl.className = 'status online';
-      statusText.textContent = d.ready ? 'Backend ready' : 'Backend up (model loading)';
+      statusText.textContent = ready ? 'Backend ready' : 'Backend up (model loading)';
       offlineBanner.style.display = 'none';
       genBtn.disabled = false;
-    } catch {
+    } catch (error) {
       statusEl.className = 'status offline';
       statusText.textContent = 'Backend offline';
       offlineBanner.style.display = 'block';
@@ -273,12 +288,12 @@
   checkHealth();
   setInterval(checkHealth, 4000);
 
-  // ---- Duration label ----
   const durSlider = document.getElementById('duration');
   const durLabel = document.getElementById('dur-label');
-  durSlider.addEventListener('input', () => { durLabel.textContent = durSlider.value + 's'; });
+  durSlider.addEventListener('input', () => {
+    durLabel.textContent = `${durSlider.value}s`;
+  });
 
-  // ---- Generate ----
   document.getElementById('generate').addEventListener('click', async () => {
     const lyrics = document.getElementById('lyrics').value.trim();
     const genre = document.getElementById('genre').value;
@@ -312,16 +327,33 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ lyrics, genre, mood, theme, voice, duration }),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.detail || 'Generation failed.');
+
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error('The backend responded with an invalid result.');
       }
-      const data = await res.json();
-      const audioUrl = `${API}${data.audio_url}`;
-      const meta = [genre, mood, theme, voice && voice + ' voice'].filter(Boolean).join(' · ') || 'Custom';
+
+      if (!res.ok) {
+        throw new Error(data?.detail || data?.error || 'Generation failed.');
+      }
+
+      const audioUrl = resolveAudioUrl(data.audio_url || data.audio || data.file_url);
+      if (!audioUrl) {
+        throw new Error('The backend did not return an audio file URL.');
+      }
+
+      const meta = [genre, mood, theme, voice && `${voice} voice`].filter(Boolean).join(' · ') || 'Custom';
       document.getElementById('song-meta').textContent = meta;
-      document.getElementById('audio').src = audioUrl;
+
+      const audio = document.getElementById('audio');
+      audio.src = audioUrl;
+      audio.load();
+      audio.play().catch(() => {});
+
       document.getElementById('download-link').href = audioUrl;
+      document.getElementById('download-link').download = 'melodai-song.wav';
       document.getElementById('player').style.display = 'flex';
     } catch (e) {
       errorBox.textContent = e.message || 'Something went wrong.';
