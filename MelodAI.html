@@ -218,7 +218,7 @@
 
   <div>
     <label class="field-label">Lyrics <span style="color:#f472b6">*</span></label>
-    <textarea id="lyrics" rows="10" placeholder="[verse]&#10;Write your lyrics here...&#10;&#10;[chorus]&#10;These will actually be sung"></textarea>
+    <textarea id="lyrics" rows="10" placeholder="[verse]\nWrite your lyrics here...\n\n[chorus]\nThese will actually be sung"></textarea>
     <p class="hint">Use <code>[verse]</code>, <code>[chorus]</code>, <code>[bridge]</code> tags — ACE-Step sings these lyrics.</p>
   </div>
 
@@ -245,13 +245,21 @@
 
 <script>
   const STORAGE_KEY = 'MELODAI_API';
-  const DEFAULT_API = 'http://localhost:8000';
+  // When this page is served over HTTP(S) (for example: by the local backend),
+  // default to the same origin so the UI automatically uses the backend it's
+  // being served from. If opened as a file (file:///) we fall back to
+  // localhost:8000 so the local server can still be reached.
+  const FALLBACK_LOCAL_API = 'http://localhost:8000';
 
   function getApiBase() {
-    const localHost = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored && stored.trim()) return stored.trim().replace(/\/$/, '');
-    return localHost ? DEFAULT_API : DEFAULT_API;
+
+    if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+      return `${window.location.protocol}//${window.location.host}`;
+    }
+
+    return FALLBACK_LOCAL_API;
   }
 
   const API = getApiBase();
