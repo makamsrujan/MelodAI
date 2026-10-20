@@ -1,120 +1,86 @@
-# MelodAI — AI Music Generator
+# MelodAI
 
-Generate full songs with sung vocals from lyrics + genre/mood/theme, using ACE-Step (3.5B) running locally on your Mac's GPU (Apple MPS). Free, no API keys, no rate limits, no broken demo spaces.
+MelodAI is a single-file Python app that opens a local browser interface for generating songs from lyrics and style choices. The interface, web server, API, playback, and WAV download handling are all contained in `app.py`; no separate HTML, frontend build, or platform-specific launcher is needed.
 
-## Stack
-- Model: `ACE-Step/ACE-Step-v1-3.5B` — runs locally, sings your lyrics
-- Backend: FastAPI (`acestep-engine/server.py`) — loads the model once, exposes `/generate`
-- Frontend: single openable `MelodAI.html` (no build step)
+The Python app is portable across Windows, macOS, and Linux. Song generation also requires ACE-Step and PyTorch dependencies supported by the host OS and hardware. A compatible GPU/accelerator is recommended; CPU-only generation can be very slow. ACE-Step downloads its model weights the first time you generate a song.
 
-## Prerequisites
-- Apple Silicon Mac (M1/M2/M3/M4/M5). 16GB+ unified memory recommended.
-- Python 3.11 — `brew install python@3.11`
-- ffmpeg — `brew install ffmpeg`
-- ~8GB free disk (model is cached to `~/.cache/ace-step/`)
+## Requirements
 
----
+- Python 3.11 (recommended for the ACE-Step version used here)
+- Git
+- Several gigabytes of disk space for ACE-Step and model weights
+- A browser
 
-## Setup (one time)
+## Install
 
-This repo tracks only our own files (`server.py`, `analyze_pitch.py`, the app, and docs). The ACE-Step engine itself is not committed — clone it into `acestep-engine/` so it sits alongside our backend.
+Run these commands from the repository folder. Keep the ACE-Step source in `acestep-engine/upstream/`; that local dependency is ignored by Git and does not add another application implementation to this repository.
 
-```bash
-# from the repo root, pull the ACE-Step engine into acestep-engine/
-git clone https://github.com/ace-step/ACE-Step.git /tmp/ace-step
-cp -R /tmp/ace-step/. acestep-engine/        # merges engine next to our server.py
-
-cd acestep-engine
-python3.11 -m venv venv
-source venv/bin/activate
-pip install -e .
-pip install -r requirements-server.txt       # torchcodec (needed to write audio)
+```text
+git clone https://github.com/ace-step/ACE-Step.git acestep-engine/upstream
+python -m venv .venv
 ```
 
-The 3.5B model (~7GB) downloads automatically on the first generation.
+Activate the environment:
 
----
+**Windows PowerShell**
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+**Windows Command Prompt**
+
+```bat
+.venv\Scripts\activate.bat
+```
+
+**macOS or Linux**
+
+```bash
+source .venv/bin/activate
+```
+
+Then, on any platform, install the model and app dependencies:
+
+```text
+python -m pip install --upgrade pip
+python -m pip install -e acestep-engine/upstream
+python -m pip install -r requirements.txt
+```
+
+If an ACE-Step dependency needs an operating-system-specific installation, use the instructions from the [ACE-Step repository](https://github.com/ace-step/ACE-Step).
 
 ## Run
 
-The backend implementation lives in `acestep-engine/server.py`. The repo root also contains a compatibility `server.py` wrapper, so both of these commands work after activating the engine venv:
-
-### Option 1: from the repo root
-```bash
-cd /path/to/MelodAI
-source acestep-engine/venv/bin/activate
-uvicorn server:app --host 0.0.0.0 --port 8000
-```
-
-### Option 2: from the engine directory
-```bash
-cd /path/to/MelodAI/acestep-engine
-source venv/bin/activate
-uvicorn server:app --host 0.0.0.0 --port 8000
-```
-
-You can also use the bundled helper script from the repo root:
-```bash
-cd /path/to/MelodAI
-./start.sh
-```
-
-### Before opening the localhost link
-
-The browser UI will not work until the FastAPI backend is already running and the model is loaded.
-
-Do this first:
-
-```bash
-cd /path/to/MelodAI
-source acestep-engine/venv/bin/activate
-uvicorn server:app --host 0.0.0.0 --port 8000
-```
-
-Then verify the backend is alive before opening the page:
-
-```bash
-curl http://localhost:8000/health
-```
-
-Expected output:
-
-```json
-{"status":"ok","ready":true}
-```
-
-On the first run, the model may take a few minutes to download and initialize. The page can be opened only after the server responds successfully.
-
-Then open the app at `http://localhost:8000` in your browser.
-
-For a direct HTML file open, `MelodAI.html` can still be opened, but the frontend will automatically prefer the same-origin backend when it is served. If opened as a raw file, it falls back to `http://localhost:8000`.
-
-Interactive API docs are available at `http://localhost:8000/docs`.
-
-## Why the import error happened
-
-This failure happens when `uvicorn server:app` is started from the wrong directory. `server.py` is not at the repository root in the original engine checkout, so running it from the repo root with the wrong environment can fail.
+With the virtual environment active, run:
 
 ```text
-Error loading ASGI app. Could not import module "server".
+python app.py
 ```
 
-The repo now includes a root-level compatibility wrapper to avoid that confusion.
+MelodAI opens in your default browser at [http://127.0.0.1:8001](http://127.0.0.1:8001). Keep the Python process running while using the app; press Ctrl+C in its terminal to stop it.
 
----
+The default port can be changed with `MELODAI_PORT`:
 
-## How It Works
-1. The page POSTs `{lyrics, genre, mood, theme, duration}` to `/generate`.
-2. The backend builds a style prompt (e.g. `"pop, upbeat, love"`) and feeds it + your lyrics to the local ACE-Step pipeline.
-3. ACE-Step runs the diffusion process on the GPU (MPS) and sings the lyrics.
-4. The 48kHz stereo WAV is saved to `acestep-engine/outputs/` and streamed back to the in-page player (with a Download button).
+```powershell
+$env:MELODAI_PORT = "8002"; python app.py
+```
 
-## Performance (Apple Silicon)
-- First run: a few minutes (one-time model download + load).
-- After that: ~1 minute for a 30s clip; scales with duration and `infer_step`.
-- The model stays loaded in the server process, so back-to-back songs are fast.
+```bash
+MELODAI_PORT=8002 python app.py
+```
 
-## Tips
-- Use `[verse]`, `[chorus]`, `[bridge]` tags in lyrics — ACE-Step respects song structure.
-- Genre/mood/theme become the musical style prompt. Leave them blank for a default vibe.
-- Tune quality/speed via `infer_step` in `server.py` (default 27).
+## Features
+
+- Generates sung music from lyrics, genre, mood, theme, voice, and duration.
+- Plays generated audio in the browser and offers a WAV download.
+- Keeps generated files in the ignored local `acestep-engine/outputs/` folder.
+- Provides a health endpoint at `/health` and API documentation at `/docs`.
+- Validates lyrics and duration and prevents simultaneous calls into the shared model.
+
+## Repository files
+
+- `app.py` — the single Python application, including its embedded interface.
+- `requirements.txt` — app-specific Python dependencies.
+- `README.md` — installation and usage instructions.
+- `.gitignore` — excludes local environments, ACE-Step source, model weights, and generated audio.
